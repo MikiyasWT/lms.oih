@@ -50,6 +50,11 @@ class LMSEnrollment(Document):
 			)
 
 		if self.enrollment_from_batch:
+			if not frappe.db.exists(
+				"Batch Course", {"parent": self.enrollment_from_batch, "course": self.course}
+			):
+				frappe.throw(_("This batch is not associated with this course."))
+
 			if frappe.db.exists(
 				"LMS Batch Enrollment", {"batch": self.enrollment_from_batch, "member": self.member}
 			):
