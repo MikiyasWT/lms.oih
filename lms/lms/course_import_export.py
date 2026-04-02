@@ -11,6 +11,7 @@ from urllib.parse import urlparse
 import frappe
 from frappe import _
 from frappe.utils import escape_html, validate_email_address
+from frappe.utils.file_manager import is_safe_path
 
 
 def export_course_zip(course_name):
@@ -151,6 +152,8 @@ def read_asset_content(url):
 	try:
 		file_doc = frappe.get_doc("File", {"file_url": url})
 		file_path = file_doc.get_full_path()
+		if not is_safe_path(file_path):
+			return None
 		with open(file_path, "rb") as f:
 			return f.read()
 	except Exception:
@@ -657,8 +660,7 @@ def create_asset_doc(asset_name, content):
 
 
 def process_asset_file(zip_file, file):
-	if is_unsafe_path(file):
-		frappe.log_error(f"Unsafe asset path: {file}")
+	if not is_safe_path(file):
 		return
 	with zip_file.open(file) as f:
 		create_asset_doc(file.split("/")[-1], f.read())
@@ -719,7 +721,3 @@ def sanitize_filename(filename):
 def validate_zip_file(zip_file_path):
 	if not os.path.exists(zip_file_path) or not zipfile.is_zipfile(zip_file_path):
 		frappe.throw(_("Invalid ZIP file"))
-
-
-def is_unsafe_path(path):
-	return ".." in path or path.startswith("/") or path.startswith("\\") or re.search(r'[<>:"|?*]', path)
