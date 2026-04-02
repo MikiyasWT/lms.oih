@@ -1,13 +1,16 @@
 import json
 import os
+import re
 import secrets
 import shutil
 import tempfile
 import zipfile
 from datetime import date, datetime, timedelta
+from urllib.parse import urlparse
 
 import frappe
 from frappe import _
+from frappe.utils import validate_email_address
 
 
 def export_course_zip(course_name):
@@ -186,39 +189,54 @@ def write_chapters_json(zip_file, chapters):
 	for chapter in chapters:
 		chapter_data = chapter.as_dict()
 		chapter_json = frappe_json_dumps(chapter_data)
-		zip_file.writestr(f"chapters/{chapter.name}.json", chapter_json)
+		safe_name = sanitize_filename(chapter.name)
+		zip_file.writestr(f"chapters/{safe_name}.json", chapter_json)
 
 
 def write_lessons_json(zip_file, lessons):
 	for lesson in lessons:
 		lesson_data = lesson.as_dict()
 		lesson_json = frappe_json_dumps(lesson_data)
-		zip_file.writestr(f"lessons/{lesson.name}.json", lesson_json)
+		safe_name = sanitize_filename(lesson.name)
+		zip_file.writestr(f"lessons/{safe_name}.json", lesson_json)
 
 
 def write_assessments_json(zip_file, assessments, questions, test_cases):
 	for question in questions:
 		question_json = frappe_json_dumps(question)
-		zip_file.writestr(f"assessments/questions/{question.name}.json", question_json)
+		safe_name = sanitize_filename(question["name"])
+		zip_file.writestr(f"assessments/questions/{safe_name}.json", question_json)
 
 	for test_case in test_cases:
 		test_case_json = frappe_json_dumps(test_case)
-		zip_file.writestr(f"assessments/test_cases/{test_case.name}.json", test_case_json)
+		safe_name = sanitize_filename(test_case["name"])
+		zip_file.writestr(f"assessments/test_cases/{safe_name}.json", test_case_json)
 
 	for assessment in assessments:
 		assessment_json = frappe_json_dumps(assessment)
-		zip_file.writestr(
-			f"assessments/{assessment['doctype'].lower()}_{assessment['name']}.json", assessment_json
-		)
+		safe_doctype = sanitize_filename(assessment["doctype"].lower())
+		safe_name = sanitize_filename(assessment["name"])
+		zip_file.writestr(f"assessments/{safe_doctype}_{safe_name}.json", assessment_json)
 
 
 def write_assets(zip_file, assets):
 	assets = list(set(assets))
 	for asset in assets:
 		try:
+			# Validate asset URL
+			if not asset or not isinstance(asset, str):
+				continue
+
+			# Check if it's a valid file URL
+			parsed_url = urlparse(asset)
+			if parsed_url.scheme and parsed_url.scheme not in ["http", "https"]:
+				continue
+
 			file_doc = frappe.get_doc("File", {"file_url": asset})
 			file_path = os.path.abspath(file_doc.get_full_path())
-			zip_file.write(file_path, f"assets/{os.path.basename(asset)}")
+
+			safe_filename = sanitize_filename(os.path.basename(asset))
+			zip_file.write(file_path, f"assets/{safe_filename}")
 		except Exception:
 			frappe.log_error(frappe.get_traceback(), f"Could not add asset: {asset}")
 			continue
@@ -243,11 +261,27 @@ def write_evaluator_json(zip_file, evaluator):
 
 
 def serve_zip(final_path, zip_filename):
-	with open(final_path, "rb") as f:
-		frappe.local.response.filename = zip_filename
-		frappe.local.response.filecontent = f.read()
-		frappe.local.response.type = "download"
-		frappe.local.response.content_type = "application/zip"
+	# Security: Validate file path is within site directory
+	site_path = frappe.get_site_path()
+	if not os.path.abspath(final_path).startswith(site_path):
+		frappe.throw(_("Invalid file path"))
+
+	# Security: Check if file exists and is readable
+	if not os.path.exists(final_path) or not os.path.isfile(final_path):
+		frappe.throw(_("File not found"))
+
+	# Security: Sanitize filename for download
+	safe_filename = sanitize_filename(zip_filename)
+
+	try:
+		with open(final_path, "rb") as f:
+			frappe.local.response.filename = safe_filename
+			frappe.local.response.filecontent = f.read()
+			frappe.local.response.type = "download"
+			frappe.local.response.content_type = "application/zip"
+	except Exception as e:
+		frappe.log_error(f"Error serving ZIP file: {str(e)}")
+		frappe.throw(_("Error downloading file"))
 
 
 def schedule_file_deletion(file_path, delay_seconds=600):
@@ -279,6 +313,8 @@ def frappe_json_dumps(data):
 def import_course_zip(zip_file_path):
 	zip_file_path = zip_file_path.lstrip("/")
 	actual_path = frappe.get_site_path(zip_file_path)
+	validate_zip_file(actual_path)
+
 	with zipfile.ZipFile(actual_path, "r") as zip_file:
 		course_data = read_json_from_zip(zip_file, "course.json")
 		if not course_data:
@@ -292,6 +328,7 @@ def import_course_zip(zip_file_path):
 		create_assessment_docs(zip_file)
 		create_lesson_docs(zip_file, course_doc.name, chapter_docs)
 		save_course_structure(zip_file, course_doc, chapter_docs)
+		return course_doc.name
 
 
 def read_json_from_zip(zip_file, filename):
@@ -313,27 +350,55 @@ def create_user_for_instructors(zip_file):
 
 
 def create_user(user):
+	if not user.get("email") or not validate_email_address(user["email"]):
+		frappe.throw(f"Invalid email for user creation: {user.get('email')}")
+		return
+
+	email = user["email"].strip().lower()
+	first_name = frappe.utils.escape_html(user.get("first_name", "").strip()[:50])
+	last_name = frappe.utils.escape_html(user.get("last_name", "").strip()[:50])
+	full_name = frappe.utils.escape_html(user.get("full_name", "").strip()[:100])
+
+	name_pattern = re.compile(r"^[a-zA-Z0-9\s\-\.]+$")
+	if first_name and not name_pattern.match(first_name):
+		first_name = re.sub(r"[^a-zA-Z0-9\s\-\.]", "", first_name)
+	if last_name and not name_pattern.match(last_name):
+		last_name = re.sub(r"[^a-zA-Z0-9\s\-\.]", "", last_name)
+
 	user_doc = frappe.new_doc("User")
-	user_doc.email = user["email"]
-	user_doc.first_name = user["first_name"] if user.get("first_name") else user["full_name"].split()[0]
-	user_doc.last_name = (
-		user["last_name"]
-		if user.get("last_name")
-		else " ".join(user["full_name"].split()[1:])
-		if len(user["full_name"].split()) > 1
-		else ""
+	user_doc.email = email
+	user_doc.first_name = first_name or full_name.split()[0] if full_name else "Imported"
+	user_doc.last_name = last_name or (
+		" ".join(full_name.split()[1:]) if len(full_name.split()) > 1 else "User"
 	)
-	user_doc.full_name = (
-		user["full_name"] if user.get("full_name") else f"{user_doc.first_name} {user_doc.last_name}".strip()
-	)
-	user_doc.user_image = user.get("user_image")
-	user_doc.insert(ignore_permissions=True)
+	user_doc.full_name = full_name or f"{user_doc.first_name} {user_doc.last_name}".strip()
+	user_doc.add_roles(["Course Creator"])
+	user_doc.send_welcome_email = False
+	user_image = user.get("user_image")
+	if user_image:
+		try:
+			parsed_url = urlparse(user_image)
+			if parsed_url.scheme in ["http", "https"] and len(user_image) < 500:
+				user_doc.user_image = user_image
+		except Exception:
+			pass
+
+	try:
+		user_doc.insert()
+	except Exception as e:
+		frappe.log_error(f"Error creating user {email}: {str(e)}")
 
 
 def create_evaluator(zip_file):
 	evaluator_data = read_json_from_zip(zip_file, "evaluator.json")
 	if not evaluator_data:
 		return
+
+	# Validate evaluator data
+	if not evaluator_data.get("evaluator") or not validate_email_address(evaluator_data.get("evaluator", "")):
+		frappe.log_error(f"Invalid evaluator data: {evaluator_data}")
+		return
+
 	if not frappe.db.exists("User", evaluator_data["evaluator"]):
 		create_user(evaluator_data)
 
@@ -457,7 +522,7 @@ def replace_assessment_names(zip_file, content):
 	return json.dumps(content)
 
 
-def replace_assets(zip_file, content):
+def replace_assets(content):
 	content = json.loads(content)
 	for block in content.get("blocks", []):
 		if block.get("type") == "upload":
@@ -471,7 +536,7 @@ def replace_assets(zip_file, content):
 
 def replace_values_in_content(zip_file, content):
 	return replace_assessment_names(zip_file, content)
-	# replace_assets(zip_file, content)
+	# replace_assets(content)
 
 
 def create_lesson_docs(zip_file, course_name, chapter_docs):
@@ -557,14 +622,22 @@ def create_assets(zip_file):
 	for file in zip_file.namelist():
 		if file.startswith("assets/") and not file.endswith("/"):
 			try:
+				# Validate file path
+				if is_unsafe_path(file):
+					frappe.log_error(f"Unsafe asset path: {file}")
+					continue
+
 				with zip_file.open(file) as f:
 					content = f.read()
 					asset_name = file.split("/")[-1]
 					if not frappe.db.exists("File", {"file_name": asset_name}):
-						asset_doc = frappe.new_doc("File")
-						asset_doc.file_name = asset_name
-						asset_doc.content = content
-						asset_doc.insert(ignore_permissions=True)
+						try:
+							asset_doc = frappe.new_doc("File")
+							asset_doc.file_name = asset_name
+							asset_doc.content = content
+							asset_doc.insert()
+						except Exception as e:
+							frappe.log_error(f"Error creating asset {asset_name}: {str(e)}")
 			except Exception as e:
 				frappe.log_error(f"Error processing asset {file}: {e}")
 
@@ -605,3 +678,16 @@ def add_chapter_to_course(course_doc, chapter_docs):
 def save_course_structure(zip_file, course_doc, chapter_docs):
 	add_chapter_to_course(course_doc, chapter_docs)
 	add_lessons_to_chapters(zip_file, course_doc.name, chapter_docs)
+
+
+def sanitize_filename(filename):
+	return re.sub(r"[^a-zA-Z0-9_\-\.]", "_", filename)
+
+
+def validate_zip_file(zip_file_path):
+	if not os.path.exists(zip_file_path) or not zipfile.is_zipfile(zip_file_path):
+		frappe.throw(_("Invalid ZIP file"))
+
+
+def is_unsafe_path(path):
+	return ".." in path or path.startswith("/") or path.startswith("\\") or re.search(r'[<>:"|?*]', path)

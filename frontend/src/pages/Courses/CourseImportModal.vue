@@ -11,7 +11,7 @@
 					v-if="!zip"
 					@dragover.prevent
 					@drop.prevent="(e) => uploadFile(e)"
-					class="h-[100px] flex flex-col items-center justify-center bg-surface-gray-1 border border-dashed border-outline-gray-3 rounded-md"
+					class="h-[120px] flex flex-col items-center justify-center bg-surface-gray-1 border border-dashed border-outline-gray-3 rounded-md"
 				>
 					<div v-if="!uploading" class="w-4/5 text-center">
 						<UploadCloud
@@ -20,8 +20,8 @@
 						<input
 							ref="fileInput"
 							type="file"
-							accept=".zip"
 							class="hidden"
+							accept=".zip"
 							@change="(e) => uploadFile(e)"
 						/>
 						<div class="leading-5 text-ink-gray-9">
@@ -36,7 +36,7 @@
 					</div>
 					<div
 						v-else-if="uploading"
-						class="w-4/5 lg:w-2/5 bg-surface-white border rounded-md p-2 my-4"
+						class="w-fit bg-surface-white border rounded-md p-2 my-4"
 					>
 						<div class="space-y-2">
 							<div class="font-medium">
@@ -56,10 +56,10 @@
 				</div>
 				<div
 					v-else-if="zip"
-					class="h-[100px] flex items-center justify-center bg-surface-gray-1 border border-dashed border-outline-gray-3 rounded-md"
+					class="h-[120px] flex items-center justify-center bg-surface-gray-1 border border-dashed border-outline-gray-3 rounded-md"
 				>
 					<div
-						class="w-4/5 lg:w-3/5 bg-surface-white border rounded-md p-2 flex items-center justify-between items-center"
+						class="w-fit bg-surface-white border rounded-md p-2 flex items-center justify-between items-center"
 					>
 						<div class="space-y-2">
 							<div class="font-medium leading-5 text-ink-gray-9">
@@ -89,8 +89,8 @@
 <script setup lang="ts">
 import { Button, call, Dialog, FileUploadHandler, toast } from 'frappe-ui'
 import { computed, ref } from 'vue'
-import { Trash, UploadCloud } from 'lucide-vue-next'
-import { Trash2 } from 'lucide-vue-next'
+import { Trash2, UploadCloud } from 'lucide-vue-next'
+import { useRouter } from 'vue-router'
 
 const fileInput = ref<HTMLInputElement | null>(null)
 const show = defineModel<boolean>({ required: true, default: false })
@@ -99,6 +99,7 @@ const uploaded = ref(0)
 const total = ref(0)
 const uploading = ref(false)
 const uploadingFile = ref<any | null>(null)
+const router = useRouter()
 
 const openFileSelector = () => {
 	fileInput.value?.click()
@@ -146,7 +147,7 @@ const uploadFile = (e: Event) => {
 
 	uploader.on('error', (error: any) => {
 		uploading.value = false
-		toast.error(__('File upload failed. Please try again. {0}').format(error))
+		toast.error(__('File upload failed. Please try again.'))
 		console.error('File upload error:', error)
 	})
 
@@ -162,6 +163,11 @@ const uploadFile = (e: Event) => {
 		})
 		.catch((error: any) => {
 			console.error('File upload error:', error)
+			toast.error(__('File upload failed. Please try again.'))
+			uploading.value = false
+			uploadingFile.value = null
+			uploaded.value = 0
+			total.value = 0
 		})
 }
 
@@ -170,10 +176,14 @@ const importZip = () => {
 	call('lms.lms.api.import_course_as_zip', {
 		zip_file_path: zip.value.file_url,
 	})
-		.then(() => {
+		.then((data: any) => {
 			toast.success('Course imported successfully!')
 			show.value = false
 			deleteFile()
+			router.push({
+				name: 'CourseDetail',
+				params: { courseName: data },
+			})
 		})
 		.catch((error: any) => {
 			toast.error('Error importing course: ' + error.message)
