@@ -154,16 +154,6 @@ const isAdmin = computed(() => {
 })
 
 const exportCourse = async () => {
-	/* call("lms.lms.api.export_course_as_zip", {
-		course_name: course.data.name,
-	}).then(data => {
-		console.log(data)
-		//download_course_zip(data)
-	}).catch(error => {
-		console.error("Error exporting course:", error)
-		toast.error(__(error.messages?.[0] || error))
-	}) */
-
 	try {
 		const response = await fetch(
 			'/api/method/lms.lms.api.export_course_as_zip',

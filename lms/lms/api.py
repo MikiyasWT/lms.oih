@@ -6,7 +6,7 @@ import re
 import shutil
 import xml.etree.ElementTree as ET
 import zipfile
-from datetime import date, timedelta
+from datetime import timedelta
 from xml.dom.minidom import parseString
 
 import frappe

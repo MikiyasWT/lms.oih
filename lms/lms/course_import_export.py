@@ -191,7 +191,9 @@ def create_course_zip(
 		schedule_file_deletion(final_path, delay_seconds=600)  # 10 minutes
 		serve_zip(final_path, zip_filename)
 	except Exception as e:
-		print("Error creating ZIP file:", e)
+		frappe.throw(
+			_("Could not create the course ZIP file. Please try again later. Error: {0}").format(str(e))
+		)
 		return None
 
 
@@ -241,7 +243,7 @@ def write_assessments_json(zip_file, assessments, questions, test_cases):
 
 	for assessment in assessments:
 		assessment_json = frappe_json_dumps(assessment)
-		safe_doctype = sanitize_filename(assessment["doctype"].lower())
+		safe_doctype = assessment["doctype"].lower()
 		safe_name = sanitize_filename(assessment["name"])
 		zip_file.writestr(f"assessments/{safe_doctype}_{safe_name}.json", assessment_json)
 
@@ -249,11 +251,7 @@ def write_assessments_json(zip_file, assessments, questions, test_cases):
 def write_assets(zip_file, assets):
 	assets = list(set(assets))
 	for asset in assets:
-		if not asset or not isinstance(asset, str):
-			continue
-
-		parsed_url = urlparse(asset)
-		if parsed_url.scheme and parsed_url.scheme not in ["http", "https"]:
+		if not asset or not isinstance(asset, str) or not is_safe_path(asset):
 			continue
 
 		file_doc = frappe.get_doc("File", {"file_url": asset})
@@ -299,18 +297,22 @@ def serve_zip(final_path, zip_filename):
 
 
 def schedule_file_deletion(file_path, delay_seconds=600):
-	import threading
+	frappe.enqueue(
+		delete_file,
+		file_path=file_path,
+		queue="long",
+		timeout=delay_seconds,
+		at_front=False,
+		enqueue_after_commit=True,
+	)
 
-	def delete():
-		try:
-			if os.path.exists(file_path):
-				os.remove(file_path)
-		except Exception as e:
-			frappe.log_error(f"Error deleting exported file {file_path}: {e}")
 
-	timer = threading.Timer(delay_seconds, delete)
-	timer.daemon = True
-	timer.start()
+def delete_file(file_path):
+	try:
+		if os.path.exists(file_path):
+			os.remove(file_path)
+	except Exception as e:
+		frappe.log_error(f"Error deleting exported file {file_path}: {e}")
 
 
 def frappe_json_dumps(data):
@@ -478,11 +480,17 @@ def create_course_doc(course_data):
 	return course_doc
 
 
+def exclude_meta_fields(data):
+	meta_fields = ["name", "owner", "creation", "created_by", "modified", "modified_by", "docstatus"]
+	return {k: v for k, v in data.items() if k not in meta_fields}
+
+
 def create_chapter_docs(zip_file, course_name):
 	chapter_docs = []
 	for file in zip_file.namelist():
 		if file.startswith("chapters/") and file.endswith(".json"):
 			chapter_data = read_json_from_zip(zip_file, file)
+			chapter_data = exclude_meta_fields(chapter_data)
 			if chapter_data:
 				chapter_doc = frappe.new_doc("Course Chapter")
 				chapter_data.pop("lessons", None)
@@ -558,6 +566,7 @@ def create_lesson_docs(zip_file, course_name, chapter_docs):
 	for file in zip_file.namelist():
 		if file.startswith("lessons/") and file.endswith(".json"):
 			lesson_data = read_json_from_zip(zip_file, file)
+			lesson_data = exclude_meta_fields(lesson_data)
 			if lesson_data:
 				lesson_doc = frappe.new_doc("Course Lesson")
 				lesson_doc.update(lesson_data)
@@ -721,3 +730,6 @@ def sanitize_filename(filename):
 def validate_zip_file(zip_file_path):
 	if not os.path.exists(zip_file_path) or not zipfile.is_zipfile(zip_file_path):
 		frappe.throw(_("Invalid ZIP file"))
+
+	if not is_safe_path(zip_file_path):
+		frappe.throw(_("Unsafe file path detected"))

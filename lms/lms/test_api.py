@@ -146,7 +146,7 @@ class TestLMSAPI(BaseTestUtils):
 	def get_imported_course(self):
 		latest_file = self.get_latest_zip_file()
 		self.assertTrue(latest_file)
-		zip_file_path = f"/{"/".join(latest_file.split("/")[2:])}"
+		zip_file_path = f"/{'/'.join(latest_file.split('/')[2:])}"
 		imported_course_name = import_course_from_zip(zip_file_path)
 		imported_course = frappe.get_doc("LMS Course", imported_course_name)
 		return imported_course
