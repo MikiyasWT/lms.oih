@@ -224,9 +224,7 @@ def update_course_statistics():
 
 	for course in courses:
 		lessons = get_lesson_count(course.name)
-
 		enrollments = frappe.db.count("LMS Enrollment", {"course": course.name, "member_type": "Student"})
-
 		avg_rating = get_average_rating(course.name) or 0
 		avg_rating = flt(avg_rating, frappe.get_system_settings("float_precision") or 3)
 

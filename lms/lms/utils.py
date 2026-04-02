@@ -549,7 +549,6 @@ def get_lesson_count(course: str) -> int:
 	chapters = frappe.get_all("Chapter Reference", {"parent": course}, ["chapter"])
 	for chapter in chapters:
 		lesson_count += frappe.db.count("Lesson Reference", {"parent": chapter.chapter})
-
 	return lesson_count
 
 

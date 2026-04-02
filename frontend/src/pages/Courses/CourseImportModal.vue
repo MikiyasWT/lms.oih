@@ -43,7 +43,7 @@
 								{{ uploadingFile.name }}
 							</div>
 							<div class="text-ink-gray-6">
-								{{ convertToKB(uploaded) }} of {{ convertToKB(total) }}
+								{{ convertToMB(uploaded) }} of {{ convertToMB(total) }}
 							</div>
 						</div>
 						<div class="w-full bg-surface-gray-1 h-1 rounded-full mt-3">
@@ -56,70 +56,30 @@
 				</div>
 				<div
 					v-else-if="zip"
-					class="h-[300px] flex items-center justify-center bg-surface-gray-1 border border-dashed border-outline-gray-3 rounded-md"
+					class="h-[100px] flex items-center justify-center bg-surface-gray-1 border border-dashed border-outline-gray-3 rounded-md"
 				>
 					<div
-						class="w-4/5 lg:w-2/5 bg-surface-white border rounded-md p-2 flex items-center justify-between items-center"
+						class="w-4/5 lg:w-3/5 bg-surface-white border rounded-md p-2 flex items-center justify-between items-center"
 					>
 						<div class="space-y-2">
-							<!-- <div class="font-medium leading-5 text-ink-gray-9">
-                                {{ importFile.file_name || importFile.split("/").pop() }}
-                            </div>
-                            <div v-if="importFile.file_size" class="text-ink-gray-6">
-                                {{ convertToKB(importFile.file_size) }}
-                            </div> -->
+							<div class="font-medium leading-5 text-ink-gray-9">
+								{{ zip.file_name || zip.name }}
+							</div>
+							<div v-if="zip.file_size" class="text-ink-gray-6">
+								{{ convertToMB(zip.file_size) }}
+							</div>
 						</div>
-						<FeatherIcon
-							name="trash-2"
+						<Trash2
 							class="size-4 stroke-1.5 text-ink-red-3 cursor-pointer"
 							@click="deleteFile"
 						/>
 					</div>
 				</div>
-				<!-- <div class="text-ink-gray-7 text-xs mb-1">
-                    {{ __("Upload a ZIP file") }}
-                </div>
-                <FileUploader
-                    v-if="!zip"
-                    :fileTypes="['.zip']"
-                    :validateFile="(file: File) => validateFile(file, true, 'zip')"
-                    @success="(file: File) => (zip = file)"
-                >
-                    <template v-slot="{ file, progress, uploading, openFileSelector }">
-                        <div class="mb-4">
-                            <Button @click="openFileSelector" :loading="uploading">
-                                {{
-                                    uploading ? __('Uploading {0}%').format(progress) : __("Upload")
-                                }}
-                            </Button>
-                        </div>
-                    </template>
-                </FileUploader>
-                <div v-else class="">
-                    <div class="flex items-center">
-                        <div class="border rounded-md p-2 mr-2">
-                            <FileText class="h-5 w-5 stroke-1.5 text-ink-gray-7" />
-                        </div>
-                        {{ zip }}
-                        <div class="flex flex-col">
-                            <span class="text-ink-gray-9">
-                                {{ chapter.scorm_package.file_name }}
-                            </span>
-                            <span class="text-sm text-ink-gray-4 mt-1">
-                                {{ getFileSize(chapter.scorm_package.file_size) }}
-                            </span>
-                        </div>
-                        <X
-                            @click="() => (chapter.scorm_package = null)"
-                            class="bg-surface-gray-3 rounded-md cursor-pointer stroke-1.5 w-5 h-5 p-1 ml-4"
-                        />
-                    </div>
-                </div> -->
 			</div>
 		</template>
 		<template #actions>
 			<div class="flex justify-end">
-				<Button variant="solid">
+				<Button variant="solid" @click="importZip">
 					{{ __('Import') }}
 				</Button>
 			</div>
@@ -127,13 +87,14 @@
 	</Dialog>
 </template>
 <script setup lang="ts">
-import { Button, Dialog, FileUploadHandler, toast } from 'frappe-ui'
+import { Button, call, Dialog, FileUploadHandler, toast } from 'frappe-ui'
 import { computed, ref } from 'vue'
-import { UploadCloud } from 'lucide-vue-next'
+import { Trash, UploadCloud } from 'lucide-vue-next'
+import { Trash2 } from 'lucide-vue-next'
 
 const fileInput = ref<HTMLInputElement | null>(null)
 const show = defineModel<boolean>({ required: true, default: false })
-const zip = ref<File | null>(null)
+const zip = ref<any | null>(null)
 const uploaded = ref(0)
 const total = ref(0)
 const uploading = ref(false)
@@ -205,11 +166,27 @@ const uploadFile = (e: Event) => {
 		})
 }
 
+const importZip = () => {
+	if (!zip.value) return
+	call('lms.lms.api.import_course_as_zip', {
+		zip_file_path: zip.value.file_url,
+	})
+		.then(() => {
+			toast.success('Course imported successfully!')
+			show.value = false
+			deleteFile()
+		})
+		.catch((error: any) => {
+			toast.error('Error importing course: ' + error.message)
+			console.error('Error importing course:', error)
+		})
+}
+
 const deleteFile = () => {
 	zip.value = null
 }
 
-const convertToKB = (bytes: number) => {
-	return (bytes / 1024).toFixed(2) + ' KB'
+const convertToMB = (bytes: number) => {
+	return (bytes / 1024 / 1024).toFixed(2) + ' MB'
 }
 </script>

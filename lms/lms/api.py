@@ -31,6 +31,7 @@ from frappe.utils import (
 from frappe.utils.response import Response
 from pypika import functions as fn
 
+from lms.lms.course_import_export import export_course_zip, import_course_zip
 from lms.lms.doctype.course_lesson.course_lesson import save_progress
 from lms.lms.utils import (
 	LMS_ROLES,
@@ -663,7 +664,7 @@ def check_app_permission():
 def save_evaluation_details(
 	member: str,
 	course: str,
-	date: str,
+	date_value: str,
 	start_time: str,
 	end_time: str,
 	status: str,
@@ -679,7 +680,7 @@ def save_evaluation_details(
 	evaluation = frappe.db.exists("LMS Certificate Evaluation", {"member": member, "course": course})
 
 	details = {
-		"date": date,
+		"date": date_value,
 		"start_time": start_time,
 		"end_time": end_time,
 		"status": status,
@@ -1205,9 +1206,9 @@ def fetch_activity_data(member: str, start_date: str):
 
 def count_dates(data: list, date_count: dict):
 	for entry in data:
-		date = format_date(entry.creation, "YYYY-MM-dd")
-		if date in date_count:
-			date_count[date] += 1
+		date_value = format_date(entry.creation, "YYYY-MM-dd")
+		if date_value in date_count:
+			date_count[date_value] += 1
 
 
 def prepare_heatmap_data(start_date: str, number_of_days: int, date_count: dict):
@@ -1380,9 +1381,9 @@ def cancel_evaluation(evaluation: dict):
 
 	for event in events:
 		info = frappe.db.get_value("Event", event.parent, ["starts_on", "subject"], as_dict=1)
-		date = str(info.starts_on).split(" ")[0]
+		date_value = str(info.starts_on).split(" ")[0]
 
-		if date == str(evaluation.date.format("YYYY-MM-DD")) and evaluation.member_name in info.subject:
+		if date_value == str(evaluation.date.format("YYYY-MM-DD")) and evaluation.member_name in info.subject:
 			communication = frappe.db.get_value(
 				"Communication",
 				{"reference_doctype": "Event", "reference_name": event.parent},
@@ -2259,7 +2260,7 @@ def get_course_programming_exercise_progress(course: str, member: str):
 	return submissions
 
 
-def get_assessment_from_lesson(course: str, assessmentType: str):
+def get_assessment_from_lesson(course: str, assessment_type: str):
 	assessments = []
 	lessons = frappe.get_all("Course Lesson", {"course": course}, ["name", "title", "content"])
 
@@ -2267,10 +2268,10 @@ def get_assessment_from_lesson(course: str, assessmentType: str):
 		if lesson.content:
 			content = json.loads(lesson.content)
 			for block in content.get("blocks", []):
-				if block.get("type") == assessmentType:
-					data_field = "exercise" if assessmentType == "program" else assessmentType
-					quiz_name = block.get("data", {}).get(data_field)
-					assessments.append(quiz_name)
+				if block.get("type") == assessment_type:
+					data_field = "exercise" if assessment_type == "program" else assessment_type
+					assessment_name = block.get("data", {}).get(data_field)
+					assessments.append(assessment_name)
 
 	return assessments
 
@@ -2359,172 +2360,11 @@ def search_users_by_role(txt: str = "", roles: str | list | None = None, page_le
 def export_course_as_zip(course_name: str):
 	if not can_modify_course(course_name):
 		frappe.throw(_("You do not have permission to export this course."), frappe.PermissionError)
-	course = frappe.get_doc("LMS Course", course_name)
-	chapters = get_chapters_for_export(course.chapters)
-	lessons = get_lessons_for_export(course_name)
-	assets = get_course_assets(course, lessons)
-	assessments = get_course_assessments(lessons)
-	safe_time = frappe.utils.now_datetime().strftime("%Y%m%d_%H%M%S")
-	zip_filename = f"{course.name}_{safe_time}_{secrets.token_hex(4)}.zip"
-	create_course_zip(zip_filename, course, chapters, lessons, assets, assessments)
+
+	export_course_zip(course_name)
 
 
-def get_chapters_for_export(chapters: list):
-	chapters_list = []
-	for row in chapters:
-		chapter = frappe.get_doc("Course Chapter", row.chapter)
-		chapters_list.append(chapter)
-	return chapters_list
-
-
-def get_lessons_for_export(course_name: str):
-	lessons = frappe.get_all("Course Lesson", {"course": course_name}, pluck="name")
-	lessons_list = []
-	for lesson in lessons:
-		lesson_doc = frappe.get_doc("Course Lesson", lesson)
-		lessons_list.append(lesson_doc)
-	return lessons_list
-
-
-def get_course_assessments(lessons):
-	assessments = []
-	for lesson in lessons:
-		content = json.loads(lesson.content) if lesson.content else {}
-		for block in content.get("blocks", []):
-			block_type = block.get("type")
-			if block_type in ("quiz", "assignment", "program"):
-				data_field = "exercise" if block_type == "program" else block_type
-				name = block.get("data", {}).get(data_field)
-				doctype = (
-					"LMS Quiz"
-					if block_type == "quiz"
-					else ("LMS Assignment" if block_type == "assignment" else "LMS Programming Exercise")
-				)
-				if frappe.db.exists(doctype, name):
-					doc = frappe.get_doc(doctype, name)
-					assessments.append(doc.as_dict())
-	return assessments
-
-
-def get_course_assets(course, lessons):
-	assets = []
-	if course.image:
-		assets.append(course.image)
-	for lesson in lessons:
-		content = json.loads(lesson.content) if lesson.content else {}
-		for block in content.get("blocks", []):
-			if block.get("type") == "upload":
-				url = block.get("data", {}).get("file_url")
-				assets.append(url)
-	return assets
-
-
-def read_asset_content(url):
-	try:
-		file_doc = frappe.get_doc("File", {"file_url": url})
-		file_path = file_doc.get_full_path()
-		with open(file_path, "rb") as f:
-			return f.read()
-	except Exception:
-		frappe.log_error(frappe.get_traceback(), f"Could not read asset: {url}")
-		return None
-
-
-def create_course_zip(zip_filename, course, chapters, lessons, assets, assessments):
-	try:
-		tmp_path = os.path.join(tempfile.gettempdir(), zip_filename)
-		build_course_zip(tmp_path, course, chapters, lessons, assets, assessments)
-		final_path = move_zip_to_public(tmp_path, zip_filename)
-		schedule_file_deletion(final_path, delay_seconds=600)  # 10 minutes
-		serve_zip(final_path, zip_filename)
-	except Exception as e:
-		print("Error creating ZIP file:", e)
-		return None
-
-
-def build_course_zip(tmp_path, course, chapters, lessons, assets, assessments):
-	with zipfile.ZipFile(tmp_path, "w", compression=zipfile.ZIP_DEFLATED) as zip_file:
-		write_course_json(zip_file, course)
-		write_chapters_json(zip_file, chapters)
-		write_lessons_json(zip_file, lessons)
-		write_assessments_json(zip_file, assessments)
-		write_assets(zip_file, assets)
-
-
-def write_course_json(zip_file, course):
-	zip_file.writestr("course.json", frappe_json_dumps(course.as_dict()))
-
-
-def write_chapters_json(zip_file, chapters):
-	for chapter in chapters:
-		chapter_data = chapter.as_dict()
-		chapter_json = frappe_json_dumps(chapter_data)
-		zip_file.writestr(f"chapters/{chapter.name}.json", chapter_json)
-
-
-def write_lessons_json(zip_file, lessons):
-	for lesson in lessons:
-		lesson_data = lesson.as_dict()
-		lesson_json = frappe_json_dumps(lesson_data)
-		zip_file.writestr(f"lessons/{lesson.name}.json", lesson_json)
-
-
-def write_assessments_json(zip_file, assessments):
-	for assessment in assessments:
-		assessment_data = assessment
-		assessment_json = frappe_json_dumps(assessment_data)
-		zip_file.writestr(
-			f"assessments/{assessment['doctype'].lower()}_{assessment['name']}.json", assessment_json
-		)
-
-
-def write_assets(zip_file, assets):
-	assets = list(set(assets))
-	for asset in assets:
-		try:
-			file_doc = frappe.get_doc("File", {"file_url": asset})
-			file_path = os.path.abspath(file_doc.get_full_path())
-			zip_file.write(file_path, f"assets/{os.path.basename(asset)}")
-		except Exception:
-			frappe.log_error(frappe.get_traceback(), f"Could not add asset: {asset}")
-			continue
-
-
-def move_zip_to_public(tmp_path, zip_filename):
-	final_path = os.path.join(frappe.get_site_path("public", "files"), zip_filename)
-	shutil.move(tmp_path, final_path)
-	return final_path
-
-
-def serve_zip(final_path, zip_filename):
-	with open(final_path, "rb") as f:
-		frappe.local.response.filename = zip_filename
-		frappe.local.response.filecontent = f.read()
-		frappe.local.response.type = "download"
-		frappe.local.response.content_type = "application/zip"
-
-
-def schedule_file_deletion(file_path, delay_seconds=600):
-	import threading
-
-	def delete():
-		try:
-			if os.path.exists(file_path):
-				os.remove(file_path)
-		except Exception as e:
-			frappe.log_error(f"Error deleting exported file {file_path}: {e}")
-
-	timer = threading.Timer(delay_seconds, delete)
-	timer.daemon = True
-	timer.start()
-
-
-def frappe_json_dumps(data):
-	def default(obj):
-		try:
-			if isinstance(obj, (datetime | date)):
-				return str(obj)
-		except Exception as e:
-			frappe.log_error(f"Error serializing object {obj}: {e}")
-
-	return json.dumps(data, indent=4, default=default)
+@frappe.whitelist()
+def import_course_as_zip(zip_file_path):
+	frappe.only_for(["Moderator", "Course Creator"])
+	import_course_zip(zip_file_path)
