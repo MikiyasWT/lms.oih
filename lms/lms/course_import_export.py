@@ -184,7 +184,7 @@ def create_course_zip(
 			instructors,
 			evaluator,
 		)
-		final_path = move_zip_to_public(tmp_path, zip_filename)
+		final_path = move_zip_to_private(tmp_path, zip_filename)
 		schedule_file_deletion(final_path, delay_seconds=600)  # 10 minutes
 		serve_zip(final_path, zip_filename)
 	except Exception as e:
@@ -260,8 +260,8 @@ def write_assets(zip_file, assets):
 		zip_file.write(file_path, f"assets/{safe_filename}")
 
 
-def move_zip_to_public(tmp_path, zip_filename):
-	final_path = os.path.join(frappe.get_site_path("public", "files"), zip_filename)
+def move_zip_to_private(tmp_path, zip_filename):
+	final_path = os.path.join(frappe.get_site_path("private", "files"), zip_filename)
 	shutil.move(tmp_path, final_path)
 	return final_path
 
@@ -279,10 +279,6 @@ def write_evaluator_json(zip_file, evaluator):
 
 
 def serve_zip(final_path, zip_filename):
-	site_path = frappe.get_site_path()
-	if not os.path.abspath(final_path).startswith(site_path):
-		frappe.throw(_("Invalid file path"))
-
 	if not os.path.exists(final_path) or not os.path.isfile(final_path):
 		frappe.throw(_("File not found"))
 
