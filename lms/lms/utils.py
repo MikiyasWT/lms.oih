@@ -23,6 +23,7 @@ from frappe.utils import (
 	nowtime,
 	pretty_date,
 	rounded,
+	validate_email_address,
 )
 from pypika import Case
 from pypika import functions as fn
@@ -84,6 +85,49 @@ def generate_slug(title: str, doctype: str):
 	result = frappe.get_all(doctype, fields=["name"])
 	slugs = {row["name"] for row in result}
 	return slugify(title, used_slugs=slugs)
+
+
+def process_user_names(first_name, last_name, full_name):
+	if not first_name and full_name:
+		name_parts = full_name.split()
+		first_name = name_parts[0] if name_parts else "User"
+		last_name = " ".join(name_parts[1:]) if len(name_parts) > 1 else ""
+
+	if not full_name:
+		full_name = f"{first_name} {last_name or ''}".strip()
+
+	return first_name, last_name or "", full_name
+
+
+def create_user_document(email, first_name, last_name, full_name, user_image=None, roles=None):
+	user_doc = frappe.new_doc("User")
+	user_doc.email = email
+	user_doc.first_name = first_name
+	user_doc.last_name = last_name
+	user_doc.full_name = full_name
+	user_doc.user_image = user_image
+	user_doc.send_welcome_email = False
+	if not roles:
+		roles = ["LMS Student"]
+	for role in roles:
+		user_doc.append("roles", {"role": role})
+	user_doc.insert()
+	return user_doc
+
+
+def create_user(email, first_name=None, last_name=None, full_name=None, user_image=None, roles=None):
+	validate_email_address(email, True)
+	print(email)
+	print(frappe.db.exists("User", email))
+	existing_user = frappe.db.exists("User", email)
+	print("existing_user", existing_user)
+	if existing_user:
+		print("User already exists")
+		return frappe.get_doc("User", email)
+
+	first_name, last_name, full_name = process_user_names(first_name, last_name, full_name)
+	user_doc = create_user_document(email, first_name, last_name, full_name, user_image, roles)
+	return user_doc
 
 
 def get_membership(course: str, member: str = None):
@@ -549,7 +593,6 @@ def get_lesson_count(course: str) -> int:
 	chapters = frappe.get_all("Chapter Reference", {"parent": course}, ["chapter"])
 	for chapter in chapters:
 		lesson_count += frappe.db.count("Lesson Reference", {"parent": chapter.chapter})
-
 	return lesson_count
 
 

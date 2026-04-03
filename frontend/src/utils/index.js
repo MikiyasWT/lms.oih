@@ -657,6 +657,8 @@ export const validateFile = async (
 		return error(
 			__('Only document file of type .doc or .docx are allowed.')
 		)
+	} else if (fileType == 'zip' && extension != 'zip') {
+		return error(__('Only ZIP files are allowed.'))
 	} else if (
 		['image', 'video'].includes(fileType) &&
 		!file.type.startsWith(`${fileType}/`)
