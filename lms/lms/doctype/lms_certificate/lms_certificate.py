@@ -35,10 +35,10 @@ class LMSCertificate(Document):
 		custom_template = frappe.db.get_single_value("LMS Settings", "certification_template")
 
 		args = {
-			"student_name": self.member_name,
+			"member_name": self.member_name,
 			"course_name": self.course,
 			"course_title": frappe.db.get_value("LMS Course", self.course, "title"),
-			"certificate_name": self.name,
+			"name": self.name,
 			"template": self.template,
 		}
 
