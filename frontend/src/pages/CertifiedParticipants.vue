@@ -41,16 +41,16 @@
 					</div>
 				</div>
 				<div class="flex items-center space-x-4">
-					<Switch
-						size="sm"
+					<FormControl
 						v-model="openToWork"
 						:label="__('Open to Work')"
+						type="checkbox"
 						@change="updateParticipants()"
 					/>
-					<Switch
-						size="sm"
+					<FormControl
 						v-model="hiring"
 						:label="__('Hiring')"
+						type="checkbox"
 						@change="updateParticipants()"
 					/>
 				</div>
@@ -129,7 +129,6 @@ import {
 	createListResource,
 	FormControl,
 	Select,
-	Switch,
 	usePageMeta,
 } from 'frappe-ui'
 import { computed, inject, onMounted, ref } from 'vue'
