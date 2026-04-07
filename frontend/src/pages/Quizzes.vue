@@ -205,7 +205,7 @@ const quizzes = createListResource({
 		return data.map((quiz) => {
 			return {
 				...quiz,
-				modified: dayjs(quiz.modified).fromNow(true),
+				modified: dayjs(quiz.modified).format('DD MMM YYYY'),
 			}
 		})
 	},
@@ -303,7 +303,7 @@ const quizColumns = computed(() => {
 			label: __('Updated On'),
 			key: 'modified',
 			width: 1,
-			align: 'center',
+			align: 'right',
 			icon: 'clock',
 		},
 	]
