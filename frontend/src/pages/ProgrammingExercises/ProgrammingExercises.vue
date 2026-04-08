@@ -123,7 +123,6 @@
 			<div v-if="exercises.hasNextPage" class="h-8 border-l"></div>
 			<div class="text-ink-gray-5">
 				{{ exercises.data?.length }} {{ __('of') }} {{ totalExercises.data }}
-				{{ __('Exercises') }}
 			</div>
 		</div>
 	</div>

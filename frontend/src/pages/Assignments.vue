@@ -112,7 +112,7 @@
 			<div v-if="assignments.hasNextPage" class="h-8 border-l"></div>
 			<div class="text-ink-gray-5">
 				{{ assignments.data?.length }} {{ __('of') }}
-				{{ totalAssignments.data }} {{ __('Assignments') }}
+				{{ totalAssignments.data }}
 			</div>
 		</div>
 	</div>
