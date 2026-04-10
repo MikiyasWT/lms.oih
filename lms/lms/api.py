@@ -232,14 +232,16 @@ def get_job_details(job: str):
 
 
 @frappe.whitelist(allow_guest=True)
-def get_job_opportunities(filters: dict = None, orFilters: dict = None):
+def get_job_opportunities(
+	filters: dict = None, or_filters: dict = None, start: int = 0, page_length: int = 40
+):
 	if not filters:
 		filters = {}
 
 	jobs = frappe.get_all(
 		"Job Opportunity",
 		filters=filters,
-		or_filters=orFilters,
+		or_filters=or_filters,
 		fields=[
 			"job_title",
 			"location",
@@ -252,6 +254,8 @@ def get_job_opportunities(filters: dict = None, orFilters: dict = None):
 			"creation",
 			"description",
 		],
+		start=start,
+		page_length=page_length,
 		order_by="creation desc",
 	)
 
@@ -348,7 +352,6 @@ def get_certified_participants(filters: dict = None, start: int = 0, page_length
 	query = get_certification_query(filters)
 	query = query.orderby("issue_date", order=frappe.qb.desc).offset(start).limit(page_length)
 	participants = query.run(as_dict=True)
-	print(participants)
 	for participant in participants:
 		details = get_certified_participant_details(participant.member)
 		participant.update(details)

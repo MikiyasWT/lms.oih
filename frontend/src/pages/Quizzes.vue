@@ -10,8 +10,8 @@
 			{{ __('Create') }}
 		</Button>
 	</header>
-	<div class="pt-5 mx-5">
-		<div class="flex items-center justify-between mb-5">
+	<div class="pt-5">
+		<div class="flex items-center justify-between mb-5 mx-5">
 			<div class="text-lg font-semibold text-ink-gray-9">
 				{{ __('{0} Quizzes').format(quizzes.data?.length) }}
 			</div>
@@ -27,7 +27,7 @@
 			:rows="quizzes.data"
 			row-key="name"
 			:options="{ showTooltip: false, selectable: true }"
-			class="h-[79vh] border-b"
+			class="h-[79vh] px-5"
 		>
 			<ListHeader
 				class="mb-2 grid items-center rounded bg-surface-white border-b rounded-none p-2"
@@ -85,8 +85,10 @@
 				</template>
 			</ListSelectBanner>
 		</ListView>
-		<EmptyState v-else type="Quizzes" />
-		<div class="flex items-center justify-end space-x-3 mt-3">
+		<div v-else class="h-[53vh]">
+			<EmptyState type="Quizzes" />
+		</div>
+		<div class="flex items-center justify-end space-x-3 pt-3 border-t px-5">
 			<Button v-if="quizzes.hasNextPage" @click="quizzes.next()">
 				{{ __('Load More') }}
 			</Button>
@@ -296,7 +298,7 @@ const quizColumns = computed(() => {
 		{
 			label: __('Show Answers'),
 			key: 'show_answers',
-			width: 1,
+			width: 0.5,
 			align: 'center',
 			icon: 'eye',
 		},

@@ -107,7 +107,9 @@
 				</div>
 			</div>
 		</div>
-		<EmptyState v-else type="Certified Members" />
+		<div v-else class="h-[53vh]">
+			<EmptyState type="Certified Members" />
+		</div>
 		<div class="flex items-center justify-end space-x-3 border-t pt-3 px-5">
 			<Button v-if="participants.hasNextPage" @click="participants.next()">
 				{{ __('Load More') }}

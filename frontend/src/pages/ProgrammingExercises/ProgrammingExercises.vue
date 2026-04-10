@@ -34,8 +34,8 @@
 			</Button>
 		</div>
 	</header>
-	<div class="p-5">
-		<div class="flex items-center justify-between mb-5">
+	<div class="py-5">
+		<div class="flex items-center justify-between mb-5 px-5">
 			<div class="text-lg font-semibold text-ink-gray-9">
 				{{ __('{0} Exercises').format(exercises.data?.length) }}
 			</div>
@@ -69,7 +69,7 @@
 						showForm = true
 					},
 				}"
-				class="h-[79vh] border-b"
+				class="h-[79vh] px-5"
 			>
 				<ListHeader
 					class="mb-2 grid items-center rounded bg-surface-white border-b rounded-none p-2"
@@ -115,8 +115,10 @@
 				</ListSelectBanner>
 			</ListView>
 		</div>
-		<EmptyState v-else type="Programming Exercises" />
-		<div class="flex items-center justify-end space-x-3 mt-3">
+		<div v-else class="h-[53vh]">
+			<EmptyState type="Programming Exercises" />
+		</div>
+		<div class="flex items-center justify-end space-x-3 px-5 pt-3 border-t">
 			<Button v-if="exercises.hasNextPage" @click="exercises.next()">
 				{{ __('Load More') }}
 			</Button>
