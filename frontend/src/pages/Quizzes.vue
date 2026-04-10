@@ -184,6 +184,7 @@ watch(search, () => {
 	totalQuizzes.update({
 		filters: quizFilters.value,
 	})
+	totalQuizzes.reload()
 })
 
 const quizzes = createListResource({
