@@ -10,7 +10,7 @@
 						{{ __(description) }}
 					</div>
 				</div>
-				<div class="space-x-2">
+				<div class="gap-x-2">
 					<Badge
 						v-if="data.isDirty"
 						:label="__('Not Saved')"

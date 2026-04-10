@@ -27,7 +27,7 @@
 					</div>
 					<div class="space-y-5">
 						<div v-for="row in slots.data" class="space-y-2">
-							<div class="flex items-center text-ink-gray-7 space-x-2">
+							<div class="flex items-center text-ink-gray-7 gap-x-2">
 								<Calendar class="size-3" />
 								<div class="text-ink-gray-9">
 									{{ dayjs(row.date).format('DD MMMM YYYY') }}

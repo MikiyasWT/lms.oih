@@ -1,6 +1,6 @@
 <template>
 	<div
-		class="flex h-full flex-col justify-between transition-all duration-300 ease-in-out border-r bg-surface-menu-bar"
+		class="flex h-full flex-col justify-between transition-all duration-300 ease-in-out border-e bg-surface-menu-bar"
 		:class="sidebarStore.isSidebarCollapsed ? 'w-14' : 'w-56'"
 	>
 		<div
@@ -31,8 +31,8 @@
 				class="mt-4"
 			>
 				<div
-					class="flex items-center justify-between pr-2 cursor-pointer"
-					:class="sidebarStore.isSidebarCollapsed ? 'pl-3' : 'pl-4'"
+					class="flex items-center justify-between pe-2 cursor-pointer"
+					:class="sidebarStore.isSidebarCollapsed ? 'ps-3' : 'ps-4'"
 					@click="toggleWebPages"
 				>
 					<div
@@ -45,7 +45,7 @@
 								:class="{ 'rotate-90': !sidebarStore.isWebpagesCollapsed }"
 							/>
 						</span>
-						<span class="ml-2">
+						<span class="ms-2">
 							{{ __('More') }}
 						</span>
 					</div>
@@ -159,12 +159,8 @@
 				"
 			>
 				<div
-					class="flex items-center flex-1"
-					:class="
-						sidebarStore.isSidebarCollapsed
-							? 'flex-col space-y-3'
-							: 'flex-row space-x-3'
-					"
+					class="flex items-center flex-1 gap-3"
+					:class="sidebarStore.isSidebarCollapsed ? 'flex-col' : 'flex-row'"
 				>
 					<Tooltip v-if="readOnlyMode && sidebarStore.isSidebarCollapsed">
 						<CircleAlert
