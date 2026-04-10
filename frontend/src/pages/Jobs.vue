@@ -22,13 +22,13 @@
 					<template #prefix>
 						<Plus class="h-4 w-4" />
 					</template>
-					{{ __('New Job') }}
+					{{ __('Create') }}
 				</Button>
 			</router-link>
 		</header>
 		<div>
 			<div
-				class="flex flex-col lg:flex-row space-y-4 lg:space-y-0 lg:items-center justify-between w-full md:w-4/5 mx-auto mb-2 p-5"
+				class="flex flex-col lg:flex-row space-y-4 lg:space-y-0 lg:items-center justify-between w-full mx-auto mb-2 p-5"
 			>
 				<div class="flex items-center justify-between">
 					<div class="text-xl font-semibold text-ink-gray-9 md:mb-0">
@@ -96,8 +96,8 @@
 					</div>
 				</div>
 			</div>
-			<div v-if="jobs.data?.length" class="w-full md:w-4/5 mx-auto p-5 pt-0">
-				<div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+			<div v-if="jobs.data?.length" class="w-full mx-auto p-5 pt-0">
+				<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
 					<router-link
 						v-for="job in jobs.data"
 						:to="{
