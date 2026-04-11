@@ -58,7 +58,7 @@
 		</div>
 		<div
 			v-if="participants.data?.length"
-			class="h-[63vh] lg:h-[76vh] overflow-y-auto mb-5 px-5"
+			class="h-[63vh] lg:h-[77vh] overflow-y-auto mb-5 px-5"
 		>
 			<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
 				<div
@@ -74,7 +74,7 @@
 					<div class="flex space-x-4">
 						<UserAvatar :user="participant" size="2xl" />
 						<div class="flex flex-col">
-							<div class="font-semibold mb-1">
+							<div class="font-semibold">
 								{{ participant.full_name }}
 							</div>
 							<div class="text-sm leading-5 line-clamp-1 mb-4">
@@ -124,7 +124,6 @@
 </template>
 <script setup>
 import {
-	Avatar,
 	Breadcrumbs,
 	Button,
 	call,
