@@ -514,6 +514,9 @@ const renderEditor = (holder, content) => {
 		data: JSON.parse(content),
 		readOnly: true,
 		defaultBlock: 'embed',
+		i18n: {
+			direction: document.documentElement.dir === 'rtl' ? 'rtl' : 'ltr',
+		},
 	})
 }
 
@@ -1035,8 +1038,8 @@ usePageMeta(() => {
 	border-radius: 0 0 20px 2px;
 	padding: 2px 26px;
 	padding-top: 0;
-	padding-right: 0;
-	text-align: left;
+	padding-inline-end: 0;
+	text-align: start;
 	cursor: pointer;
 	border: none !important;
 	outline: none !important;
@@ -1044,7 +1047,7 @@ usePageMeta(() => {
 
 .codeBoxSelectDropIcon {
 	position: absolute !important;
-	left: 10px !important;
+	inset-inline-start: 10px !important;
 	bottom: 0 !important;
 	width: unset !important;
 	height: unset !important;
@@ -1101,7 +1104,7 @@ usePageMeta(() => {
 }
 
 .tc-table {
-	border-left: 1px solid #e8e8eb;
+	border-inline-start: 1px solid #e8e8eb;
 }
 
 .plyr__volume input[type='range'] {

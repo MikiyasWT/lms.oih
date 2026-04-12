@@ -4,7 +4,7 @@
 		:style="{
 			display: top > 0 ? 'block' : 'none',
 			top: top + 'px',
-			left: left + 'px',
+			insetInlineStart: left + 'px',
 		}"
 	>
 		<div class="space-y-2 py-2">
