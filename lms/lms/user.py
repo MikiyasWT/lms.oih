@@ -1,7 +1,7 @@
 import frappe
 from frappe import _
 from frappe.model.naming import append_number_if_name_exists
-from frappe.utils import escape_html, random_string
+from frappe.utils import cint, escape_html, random_string
 from frappe.website.utils import cleanup_page_name, is_signup_disabled
 
 from lms.lms.utils import get_country_code, get_lms_route
@@ -23,7 +23,7 @@ def after_insert(doc, method):
 	doc.add_roles("LMS Student")
 
 
-@frappe.whitelist(allow_guest=True)
+@frappe.whitelist(allow_guest=True)  # nosemgrep: frappe-semgrep-rules.rules.security.guest-whitelisted-method
 def sign_up(email: str, full_name: str, verify_terms: bool, user_category: str):
 	if is_signup_disabled():
 		frappe.throw(_("Sign Up is disabled"), _("Not Allowed"))
@@ -35,7 +35,9 @@ def sign_up(email: str, full_name: str, verify_terms: bool, user_category: str):
 		else:
 			return 0, _("Registered but disabled")
 	else:
-		if frappe.db.get_creation_count("User", 60) > 300:
+		max_signups_allowed_per_hour = cint(frappe.get_system_settings("max_signups_allowed_per_hour") or 300)
+		users_created_past_hour = frappe.db.get_creation_count("User", 60)
+		if users_created_past_hour >= max_signups_allowed_per_hour:
 			frappe.respond_as_web_page(
 				_("Temporarily Disabled"),
 				_(

@@ -176,7 +176,10 @@ describe("Course Creation", () => {
 		cy.get("div").contains("Test Course").click();
 		cy.get("button").contains("Settings").click();
 		cy.get("header").within(() => {
-			cy.get("svg.lucide.lucide-trash2-icon").click();
+			cy.get("svg.lucide.lucide-ellipsis-icon").click();
+		});
+		cy.get("div[role=menu]").within(() => {
+			cy.get("span").contains("Delete").click();
 		});
 		cy.get("span").contains("Delete").click();
 		cy.wait(500);

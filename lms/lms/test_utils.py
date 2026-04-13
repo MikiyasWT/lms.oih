@@ -7,6 +7,7 @@ from frappe.utils import getdate, to_timedelta
 from lms.lms.doctype.lms_certificate.lms_certificate import is_certified
 from lms.lms.test_helpers import BaseTestUtils
 from lms.lms.utils import (
+	create_user,
 	get_average_rating,
 	get_batch_details,
 	get_chapters,
@@ -157,3 +158,24 @@ class TestLMSUtils(BaseTestUtils):
 		self.assertEqual(batch_details.evaluation_end_date, getdate(self.batch.evaluation_end_date))
 		self.assertEqual(len(batch_details.instructors), len(self.batch.instructors))
 		self.assertEqual(len(batch_details.students), 2)
+
+	def test_create_user(self):
+		user = create_user(
+			email="testuser@example.com", first_name="Test", last_name="User", roles=["LMS Student"]
+		)
+		self.assertEqual(user.email, "testuser@example.com")
+		self.assertEqual(user.first_name, "Test")
+		self.assertEqual(user.last_name, "User")
+		self.assertEqual(user.full_name, "Test User")
+		self.assertIn("LMS Student", [role.role for role in user.roles])
+		self.cleanup_items.append(("User", user.name))
+
+	def test_create_user_with_full_name(self):
+		user = create_user(
+			email="fullnameuser@example.com", full_name="John Michael Doe", roles=["Course Creator"]
+		)
+		self.assertEqual(user.first_name, "John")
+		self.assertEqual(user.last_name, "Michael Doe")
+		self.assertEqual(user.full_name, "John Michael Doe")
+		self.assertIn("Course Creator", [role.role for role in user.roles])
+		self.cleanup_items.append(("User", user.name))

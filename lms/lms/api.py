@@ -29,17 +29,16 @@ from frappe.utils import (
 from frappe.utils.response import Response
 from pypika import functions as fn
 
+from lms.lms.course_import_export import export_course_zip, import_course_zip
 from lms.lms.doctype.course_lesson.course_lesson import save_progress
 from lms.lms.utils import (
 	LMS_ROLES,
 	can_modify_batch,
 	can_modify_course,
-	get_average_rating,
 	get_batch_details,
 	get_course_details,
 	get_field_meta,
 	get_instructors,
-	get_lesson_count,
 	get_lms_route,
 	has_course_instructor_role,
 	has_evaluator_role,
@@ -233,14 +232,16 @@ def get_job_details(job: str):
 
 
 @frappe.whitelist(allow_guest=True)
-def get_job_opportunities(filters: dict = None, orFilters: dict = None):
+def get_job_opportunities(
+	filters: dict = None, or_filters: dict = None, start: int = 0, page_length: int = 40
+):
 	if not filters:
 		filters = {}
 
 	jobs = frappe.get_all(
 		"Job Opportunity",
 		filters=filters,
-		or_filters=orFilters,
+		or_filters=or_filters,
 		fields=[
 			"job_title",
 			"location",
@@ -253,6 +254,8 @@ def get_job_opportunities(filters: dict = None, orFilters: dict = None):
 			"creation",
 			"description",
 		],
+		start=start,
+		page_length=page_length,
 		order_by="creation desc",
 	)
 
@@ -345,11 +348,10 @@ def get_evaluator_details(evaluator: str):
 
 
 @frappe.whitelist()
-def get_certified_participants(filters: dict = None, start: int = 0, page_length: int = 100):
+def get_certified_participants(filters: dict = None, start: int = 0, page_length: int = 40):
 	query = get_certification_query(filters)
 	query = query.orderby("issue_date", order=frappe.qb.desc).offset(start).limit(page_length)
 	participants = query.run(as_dict=True)
-
 	for participant in participants:
 		details = get_certified_participant_details(participant.member)
 		participant.update(details)
@@ -362,7 +364,7 @@ def get_certified_participant_details(member: str):
 	details = frappe.db.get_value(
 		"User",
 		member,
-		["full_name", "user_image", "username", "country", "headline", "open_to"],
+		["full_name", "user_image", "username", "creation", "headline", "open_to"],
 		as_dict=1,
 	)
 	details["certificate_count"] = count
@@ -375,12 +377,12 @@ def get_certification_query(filters: dict = None):
 
 	query = (
 		frappe.qb.from_(Certificate)
-		.select(Certificate.member, Certificate.issue_date)
-		.distinct()
+		.select(Certificate.member, fn.Max(Certificate.issue_date).as_("issue_date"))
 		.join(User)
 		.on(Certificate.member == User.name)
 		.where(Certificate.published == 1)
 		.where(User.enabled == 1)
+		.groupby(Certificate.member)
 	)
 
 	if filters:
@@ -664,7 +666,7 @@ def check_app_permission():
 def save_evaluation_details(
 	member: str,
 	course: str,
-	date: str,
+	date_value: str,
 	start_time: str,
 	end_time: str,
 	status: str,
@@ -680,7 +682,7 @@ def save_evaluation_details(
 	evaluation = frappe.db.exists("LMS Certificate Evaluation", {"member": member, "course": course})
 
 	details = {
-		"date": date,
+		"date": date_value,
 		"start_time": start_time,
 		"end_time": end_time,
 		"status": status,
@@ -1004,9 +1006,20 @@ def upsert_chapter(
 def extract_package(course: str, title: str, scorm_package: dict):
 	package = frappe.get_doc("File", scorm_package.name)
 	zip_path = package.get_full_path()
-	# check_for_malicious_code(zip_path)
+	scorm_root = os.path.realpath(frappe.get_site_path("public", "scorm"))
 	extract_path = frappe.get_site_path("public", "scorm", course, title)
-	zipfile.ZipFile(zip_path).extractall(extract_path)
+
+	if not os.path.realpath(extract_path).startswith(scorm_root + os.sep):
+		frappe.throw(_("Invalid course or chapter name"))
+
+	with zipfile.ZipFile(zip_path, "r") as zf:
+		dest = os.path.realpath(extract_path)
+		for name in zf.namelist():
+			target = os.path.realpath(os.path.join(extract_path, name))
+			if not target.startswith(dest + os.sep) and target != dest:
+				frappe.throw(_("Invalid file path in package"))
+		zf.extractall(extract_path)
+
 	return extract_path
 
 
@@ -1206,9 +1219,9 @@ def fetch_activity_data(member: str, start_date: str):
 
 def count_dates(data: list, date_count: dict):
 	for entry in data:
-		date = format_date(entry.creation, "YYYY-MM-dd")
-		if date in date_count:
-			date_count[date] += 1
+		date_value = format_date(entry.creation, "YYYY-MM-dd")
+		if date_value in date_count:
+			date_count[date_value] += 1
 
 
 def prepare_heatmap_data(start_date: str, number_of_days: int, date_count: dict):
@@ -1219,18 +1232,18 @@ def prepare_heatmap_data(start_date: str, number_of_days: int, date_count: dict)
 	last_seen_month = None
 	sorted_dates = sorted(date_count.keys())
 
-	for date in sorted_dates:
-		activity_count = date_count[date]
-		day_of_week = get_datetime(date).strftime("%a")
-		current_month = get_datetime(date).strftime("%b")
-		column_index = get_week_difference(start_date, date)
+	for date_value in sorted_dates:
+		activity_count = date_count[date_value]
+		day_of_week = get_datetime(date_value).strftime("%a")
+		current_month = get_datetime(date_value).strftime("%b")
+		column_index = get_week_difference(start_date, date_value)
 
 		if 0 <= column_index < week_count:
 			heatmap_data[day_of_week].append(
 				{
-					"date": date,
+					"date": date_value,
 					"count": activity_count,
-					"label": f"{activity_count} activities on {format_date(date, 'dd MMM')}",
+					"label": f"{activity_count} activities on {format_date(date_value, 'dd MMM')}",
 				}
 			)
 
@@ -1381,9 +1394,9 @@ def cancel_evaluation(evaluation: dict):
 
 	for event in events:
 		info = frappe.db.get_value("Event", event.parent, ["starts_on", "subject"], as_dict=1)
-		date = str(info.starts_on).split(" ")[0]
+		date_value = str(info.starts_on).split(" ")[0]
 
-		if date == str(evaluation.date.format("YYYY-MM-DD")) and evaluation.member_name in info.subject:
+		if date_value == str(evaluation.date.format("YYYY-MM-DD")) and evaluation.member_name in info.subject:
 			communication = frappe.db.get_value(
 				"Communication",
 				{"reference_doctype": "Event", "reference_name": event.parent},
@@ -1540,6 +1553,9 @@ def update_meta_info(meta_type: str, route: str, meta_tags: list):
 def validate_meta_tags(meta_tags: list):
 	if not isinstance(meta_tags, list):
 		frappe.throw(_("Meta tags should be a list."))
+	for tag in meta_tags:
+		if tag.get("value"):
+			tag["value"] = frappe.utils.strip_html_tags(str(tag["value"]))
 
 
 def create_meta(parent_name: str, tag_properties: dict):
@@ -2260,7 +2276,7 @@ def get_course_programming_exercise_progress(course: str, member: str):
 	return submissions
 
 
-def get_assessment_from_lesson(course: str, assessmentType: str):
+def get_assessment_from_lesson(course: str, assessment_type: str):
 	assessments = []
 	lessons = frappe.get_all("Course Lesson", {"course": course}, ["name", "title", "content"])
 
@@ -2268,10 +2284,10 @@ def get_assessment_from_lesson(course: str, assessmentType: str):
 		if lesson.content:
 			content = json.loads(lesson.content)
 			for block in content.get("blocks", []):
-				if block.get("type") == assessmentType:
-					data_field = "exercise" if assessmentType == "program" else assessmentType
-					quiz_name = block.get("data", {}).get(data_field)
-					assessments.append(quiz_name)
+				if block.get("type") == assessment_type:
+					data_field = "exercise" if assessment_type == "program" else assessment_type
+					assessment_name = block.get("data", {}).get(data_field)
+					assessments.append(assessment_name)
 
 	return assessments
 
@@ -2354,3 +2370,17 @@ def search_users_by_role(txt: str = "", roles: str | list | None = None, page_le
 		{"value": r.name, "description": r.full_name or r.name, "label": r.full_name or r.name}
 		for r in results
 	]
+
+
+@frappe.whitelist()
+def export_course_as_zip(course_name: str):
+	if not can_modify_course(course_name):
+		frappe.throw(_("You do not have permission to export this course."), frappe.PermissionError)
+
+	export_course_zip(course_name)
+
+
+@frappe.whitelist()
+def import_course_from_zip(zip_file_path: str):
+	frappe.only_for(["Moderator", "Course Creator"])
+	return import_course_zip(zip_file_path)
