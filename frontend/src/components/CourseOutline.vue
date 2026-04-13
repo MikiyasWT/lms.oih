@@ -46,12 +46,12 @@
 							>
 								<ChevronRight
 									:class="{
-										'rotate-90 transform duration-200': open,
-										'duration-200': !open,
+										'rotate-90': open,
+										'rtl:rotate-180': !open,
 										hidden: chapter.is_scorm_package,
 										open: index == 1,
 									}"
-									class="h-4 w-4 text-ink-gray-9 stroke-1"
+									class="h-4 w-4 text-ink-gray-9 stroke-1 transform duration-200"
 								/>
 								<div
 									class="text-base text-start text-ink-gray-9 font-medium leading-5 ms-2"

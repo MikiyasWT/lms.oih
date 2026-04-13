@@ -42,7 +42,10 @@
 						<span class="grid h-5 w-6 flex-shrink-0 place-items-center">
 							<ChevronRight
 								class="h-4 w-4 stroke-1.5 text-ink-gray-9 transition-all duration-300 ease-in-out"
-								:class="{ 'rotate-90': !sidebarStore.isWebpagesCollapsed }"
+								:class="{
+									'rotate-90': sidebarStore.isWebpagesCollapsed,
+									'rtl:rotate-180': !sidebarStore.isWebpagesCollapsed,
+								}"
 							/>
 						</span>
 						<span class="ms-2">

@@ -336,7 +336,7 @@ const toggleFullscreen = () => {
 const getQuizMarkerStyle = (time) => {
 	const percentage = ((time - 5) / Math.ceil(duration.value)) * 100
 	return {
-		left: `${percentage}%`,
+		insetInlineStart: `${percentage}%`,
 	}
 }
 

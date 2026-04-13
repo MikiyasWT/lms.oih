@@ -182,7 +182,7 @@ const getGradientColor = () => {
 }
 
 .avatar-group.overlap .avatar + .avatar {
-	margin-left: calc(-8px);
+	margin-inline-start: calc(-8px);
 }
 
 .short-introduction {

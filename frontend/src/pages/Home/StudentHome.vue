@@ -90,7 +90,7 @@
 						<span>
 							{{ __('See all') }}
 						</span>
-						<MoveRight class="size-3 stroke-1.5" />
+						<MoveRight class="size-3 stroke-1.5 rtl:rotate-180" />
 					</span>
 				</router-link>
 			</div>
@@ -122,7 +122,7 @@
 						<span>
 							{{ __('See all') }}
 						</span>
-						<MoveRight class="size-3 stroke-1.5" />
+						<MoveRight class="size-3 stroke-1.5 rtl:rotate-180" />
 					</span>
 				</router-link>
 			</div>
