@@ -51,7 +51,7 @@
 			/>
 			<div class="flex items-center mb-3 text-ink-gray-7">
 				<Clock class="h-4 w-4 stroke-1.5 me-2" />
-				<span>
+				<span dir="ltr">
 					{{ formatTime(batch.data.start_time) }} -
 					{{ formatTime(batch.data.end_time) }}
 				</span>

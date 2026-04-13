@@ -40,7 +40,7 @@
 			/>
 			<div class="flex items-center text-sm text-ink-gray-7">
 				<Clock class="h-4 w-4 stroke-1.5 me-2 text-ink-gray-7" />
-				<span>
+				<span dir="ltr">
 					{{ formatTime(batch.start_time) }} - {{ formatTime(batch.end_time) }}
 				</span>
 			</div>
