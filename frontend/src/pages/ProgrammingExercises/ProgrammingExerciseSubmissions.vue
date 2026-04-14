@@ -5,7 +5,7 @@
 		<Breadcrumbs :items="breadcrumbs" />
 	</header>
 	<div class="p-6">
-		<div class="flex items-center justify-between space-x-32 mb-5">
+		<div class="flex items-center justify-between gap-x-32 mb-5">
 			<div class="text-lg font-semibold text-ink-gray-9">
 				{{
 					submissions.data?.length
@@ -54,7 +54,7 @@
 			}"
 		>
 			<ListHeader
-				class="mb-2 grid items-center space-x-4 rounded bg-surface-gray-2 p-2"
+				class="mb-2 grid items-center gap-x-4 rounded bg-surface-gray-2 p-2"
 			>
 				<ListHeaderItem
 					:item="item"

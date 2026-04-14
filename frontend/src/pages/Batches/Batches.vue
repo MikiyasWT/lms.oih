@@ -34,7 +34,7 @@
 					<template #suffix>
 						<ChevronDown
 							:class="[
-								'w-4 h-4 stroke-1.5 ml-1 transform transition-transform',
+								'w-4 h-4 stroke-1.5 ms-1 transform transition-transform',
 								open ? 'rotate-180' : '',
 							]"
 						/>
@@ -51,7 +51,7 @@
 				{{ __('All Batches') }}
 			</div>
 			<div
-				class="flex flex-col space-y-3 lg:space-y-0 lg:flex-row lg:items-center lg:space-x-4"
+				class="flex flex-col space-y-3 lg:space-y-0 lg:flex-row lg:items-center lg:gap-x-4"
 			>
 				<TabButtons
 					v-if="user.data"

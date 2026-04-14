@@ -44,7 +44,7 @@
 				</div>
 
 				<div
-					class="flex flex-col md:flex-row md:items-center md:space-x-4 space-y-4 md:space-y-0"
+					class="flex flex-col md:flex-row md:items-center md:gap-x-4 space-y-4 md:space-y-0"
 				>
 					<TabButtons
 						v-if="tabs.length > 1"
@@ -53,7 +53,7 @@
 						class="hidden lg:block"
 						@change="updateJobs"
 					/>
-					<div class="flex items-center space-x-4">
+					<div class="flex items-center gap-x-4">
 						<FormControl
 							type="text"
 							:placeholder="__('Search')"
@@ -116,11 +116,11 @@
 			<div v-else class="h-[32vh] lg:h-[50vh] px-5">
 				<EmptyState type="Job Openings" />
 			</div>
-			<div class="flex items-center justify-end space-x-3 border-t pt-3 px-5">
+			<div class="flex items-center justify-end gap-x-3 border-t pt-3 px-5">
 				<Button v-if="jobs.hasNextPage" @click="jobs.next()">
 					{{ __('Load More') }}
 				</Button>
-				<div v-if="jobs.hasNextPage" class="h-8 border-l"></div>
+				<div v-if="jobs.hasNextPage" class="h-8 border-s"></div>
 				<div class="text-ink-gray-5">
 					{{ jobs.data?.length }} {{ __('of') }}
 					{{ jobCount.data }}

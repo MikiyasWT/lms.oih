@@ -18,9 +18,9 @@
 				{{ memberCount }} {{ __('Certified Members') }}
 			</div>
 			<div
-				class="flex flex-col md:flex-row md:items-center space-y-4 md:space-y-0 md:space-x-4"
+				class="flex flex-col md:flex-row md:items-center space-y-4 md:space-y-0 md:gap-x-4"
 			>
-				<div class="flex items-center space-x-4">
+				<div class="flex items-center gap-x-4">
 					<FormControl
 						v-model="nameFilter"
 						:placeholder="__('Search by Name')"
@@ -40,7 +40,7 @@
 						/>
 					</div>
 				</div>
-				<div class="flex items-center space-x-4">
+				<div class="flex items-center gap-x-4">
 					<FormControl
 						v-model="openToWork"
 						:label="__('Open to Work')"
@@ -71,7 +71,7 @@
 						})
 					"
 				>
-					<div class="flex space-x-4">
+					<div class="flex items-center gap-x-4">
 						<UserAvatar :user="participant" size="2xl" />
 						<div class="flex flex-col">
 							<div class="font-semibold line-clamp-1">
@@ -86,8 +86,8 @@
 						</div>
 					</div>
 					<div class="mt-auto space-y-2 text-ink-gray-7">
-						<div class="flex items-center space-x-1">
-							<GraduationCap class="h-4 w-4 stroke-1.5 mr-1" />
+						<div class="flex items-center gap-x-1">
+							<GraduationCap class="h-4 w-4 stroke-1.5 me-1" />
 							<span>
 								{{ participant.certificate_count }}
 								{{
@@ -97,8 +97,8 @@
 								}}
 							</span>
 						</div>
-						<div class="flex items-center space-x-1">
-							<Calendar class="h-4 w-4 stroke-1.5 mr-1" />
+						<div class="flex items-center gap-x-1">
+							<Calendar class="h-4 w-4 stroke-1.5 me-1" />
 							<span>{{
 								dayjs(participant.issue_date).format('DD MMM YYYY')
 							}}</span>
@@ -110,11 +110,11 @@
 		<div v-else class="h-[40vh] lg:h-[53vh] px-5">
 			<EmptyState type="Certified Members" />
 		</div>
-		<div class="flex items-center justify-end space-x-3 border-t pt-3 px-5">
+		<div class="flex items-center justify-end gap-x-3 border-t pt-3 px-5">
 			<Button v-if="participants.hasNextPage" @click="participants.next()">
 				{{ __('Load More') }}
 			</Button>
-			<div v-if="participants.hasNextPage" class="h-8 border-l"></div>
+			<div v-if="participants.hasNextPage" class="h-8 border-s"></div>
 			<div class="text-ink-gray-5">
 				{{ participants.data?.length }} {{ __('of') }}
 				{{ memberCount }}

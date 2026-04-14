@@ -28,15 +28,15 @@
 				<div class="text-lg font-semibold text-ink-gray-9">
 					{{ program.name }}
 				</div>
-				<div class="flex items-center space-x-1 text-ink-gray-7">
-					<BookOpen class="h-4 w-4 stroke-1.5 mr-1" />
+				<div class="flex items-center gap-x-2 text-ink-gray-7">
+					<BookOpen class="h-4 w-4 stroke-1.5" />
 					<span>
 						{{ program.course_count }}
 						{{ program.course_count == 1 ? __('Course') : __('Courses') }}
 					</span>
 				</div>
-				<div class="flex items-center space-x-1 text-ink-gray-7">
-					<User class="h-4 w-4 stroke-1.5 mr-1" />
+				<div class="flex items-center gap-x-2 text-ink-gray-7">
+					<User class="h-4 w-4 stroke-1.5" />
 					<span>
 						{{ program.member_count || 0 }}
 						{{ program.member_count == 1 ? __('member') : __('members') }}

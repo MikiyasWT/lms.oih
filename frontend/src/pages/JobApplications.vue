@@ -70,7 +70,7 @@
 							<ListRowItem :item="item">
 								<div
 									v-if="column.key === 'full_name'"
-									class="flex items-center space-x-3"
+									class="flex items-center gap-x-3"
 								>
 									<Avatar
 										size="sm"
@@ -100,11 +100,11 @@
 						</ListRow>
 					</ListRows>
 				</ListView>
-				<div class="flex items-center justify-end space-x-3 mt-3">
+				<div class="flex items-center justify-end gap-x-3 mt-3">
 					<Button v-if="applications.hasNextPage" @click="applications.next()">
 						{{ __('Load More') }}
 					</Button>
-					<div v-if="applications.hasNextPage" class="h-8 border-l"></div>
+					<div v-if="applications.hasNextPage" class="h-8 border-s"></div>
 					<div class="text-ink-gray-5">
 						{{ applications.data?.length }} {{ __('of') }}
 						{{ totalApplications.data }}
