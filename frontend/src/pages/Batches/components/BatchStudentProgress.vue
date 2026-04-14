@@ -3,10 +3,17 @@
 		v-model="show"
 		:options="{
 			size: 'xl',
+			title: studentDetails.data?.full_name || __('Student Details'),
 		}"
 	>
 		<template #body>
-			<div v-if="studentDetails.data" class="p-5 space-y-10 text-sm">
+			<div
+				v-if="studentDetails.loading && !studentDetails.data"
+				class="flex items-center justify-center py-12"
+			>
+				<LoadingIndicator class="size-4" />
+			</div>
+			<div v-else-if="studentDetails.data" class="p-5 space-y-10 text-sm">
 				<div class="flex items-center gap-x-2">
 					<Avatar :image="studentDetails.data.user_image" size="3xl" />
 					<div class="space-y-1">
@@ -136,6 +143,7 @@ import {
 	ListRows,
 	ListRow,
 	ListRowItem,
+	LoadingIndicator,
 } from 'frappe-ui'
 import { useRouter } from 'vue-router'
 import ProgressBar from '@/components/ProgressBar.vue'
