@@ -29,8 +29,8 @@ def get_payment_link(
 	docname: str,
 	address: dict,
 	payment_for_certificate: int,
-	coupon_code: str,
-	country: str,
+	coupon_code: str | None = None,
+	country: str | None = None,
 ):
 	payment_gateway = get_payment_gateway()
 	address = frappe._dict(address)
