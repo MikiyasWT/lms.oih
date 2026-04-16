@@ -284,3 +284,6 @@ add_to_apps_screen = [
 sqlite_search = ["lms.sqlite.LearningSearch"]
 auth_hooks = ["lms.auth.authenticate"]
 require_type_annotated_api_methods = True
+
+
+fixtures = ["Custom Field", "Property Setter", "Client Script"]
